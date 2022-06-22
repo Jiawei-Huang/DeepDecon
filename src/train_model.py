@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import argparse
 
 import scipy.sparse as sp
 
@@ -153,78 +154,88 @@ class Net(object):
 
         return history
     
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
-parser.add_argument("--path", type=str, help="training data directory", default='./aml_simulated_bulk_data/AML_less_10/')
-args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
+    parser.add_argument("--path", type=str, help="training data directory", default='./aml_simulated_bulk_data/range_0_10/')
+    args = parser.parse_args()
 
-cell = args.cells
-path = args.path
-data = []
-subjects = ['AML328-D29', 'AML1012-D0', 'AML556-D0', 'AML328-D171', 
-            'AML210A-D0', 'AML419A-D0', 'AML328-D0', 'AML707B-D0',
-            'AML916-D0', 'AML328-D113', 'AML329-D0', 'AML420B-D0',
-            'AML329-D20', 'AML921A-D0', 'AML475-D0'
-           ]
-for sub in subjects:
-    if cell == 500:
-        tmp = pd.read_csv(path+sub+'_bulk_nor_500_200.txt', index_col=0)
-    else:
-        tmp = pd.read_csv(path+sub+'/random_'+str(cell)+'_1000_'+sub+'.txt', index_col=0, nrows=200)
-    data.append(tmp)
+    cell = args.cells
+    path = args.path
+    data = []
+    subjects = ['AML328-D29', 'AML1012-D0', 'AML556-D0', 'AML328-D171', 
+                'AML210A-D0', 'AML419A-D0', 'AML328-D0', 'AML707B-D0',
+                'AML916-D0', 'AML328-D113', 'AML329-D0', 'AML420B-D0',
+                'AML329-D20', 'AML921A-D0', 'AML475-D0'
+            ]
+    for sub in subjects:
+        if cell == 500:
+            tmp = pd.read_csv(path+sub+'_bulk_nor_500_200.txt', index_col=0)
+        else:
+            tmp = pd.read_csv(path+sub+'/random_'+str(cell)+'_1000_'+sub+'.txt', index_col=0, nrows=200)
+        data.append(tmp)
 
-keep_info = {
-    'train_ind':[],
-    'test_ind':[],
-    'keep_genes':[],
-    'model':[],
-    'idf_tr':[],
-    'idf_val':[]
-}
+    keep_info = {
+        'train_ind':[],
+        'test_ind':[],
+        'keep_genes':[],
+        'model':[],
+        'idf_tr':[],
+        'idf_val':[]
+    }
 
-architectures = {'m256':    ([256, 128, 64, 32],    [0, 0, 0, 0]),
-                 'm512':    ([512, 256, 128, 64],   [0, 0.3, 0.2, 0.1]),
-                 'm1024':   ([64, 32, 16, 16, 8], [0, 0, 0, 0, 0, 0])}
-test_genes = pd.read_csv('./aml_subject_data/common_gene.txt', index_col=0)
-for ind in range(15):
-    name = subjects[ind]
-    print(name)
-    train_ind = list(range(ind))+list(range(ind+1, len(subjects)))
-    print(train_ind, ind)
-    keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
-    train = pd.concat([data[i][keep_gene] for i in train_ind], axis=0, ignore_index=True)
-    val = data[ind][keep_gene]
-       
-    X_tr, y_tr = splitData(train)
-    X_val, y_val = splitData(val)
-    
+    architectures = {'m256':    ([256, 128, 64, 32],    [0, 0, 0, 0]),
+                    'm512':    ([512, 256, 128, 64],   [0, 0.3, 0.2, 0.1]),
+                    'm1024':   ([64, 32, 16, 16, 8], [0, 0, 0, 0, 0, 0])}
+    test_genes = pd.read_csv('./aml_subject_data/common_gene.txt', index_col=0)
+    for ind in range(15):
+        name = subjects[ind]
+        print(name)
+        train_ind = list(range(ind))+list(range(ind+1, len(subjects)))
+        print(train_ind, ind)
+        keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
+        train = pd.concat([data[i][keep_gene] for i in train_ind], axis=0, ignore_index=True)
+        val = data[ind][keep_gene]
+        
+        X_tr, y_tr = splitData(train)
+        X_val, y_val = splitData(val)
+        
 
-    celltypes = y_tr.columns
-    nor_X_tr, idf_tr = preprocess(X_tr.values)          #transformer(np.log1p(X_tr), 'PowerTransformer')
-    nor_y_tr = y_tr.values
-    nor_X_val_scale, idf_val = preprocess(X_val.values)
-    nor_y_val_scale = y_val.loc[:, celltypes].values
-    
-    epochs = 500
-    opt = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999)
-    m256 = Net(nor_X_tr.shape[1], 2, loss=rmse, model_name='m1024', optimizer=opt, large=True,
-                early_stopping=True, hidden=architectures['m256'][0], dropout=architectures['m256'][1])
-    h_256 = m256.fit(nor_X_tr, nor_y_tr, X_val=nor_X_val_scale, y_val=nor_y_val_scale, epochs=epochs)
-    keep_info['model'].append(m256)
-    keep_info['idf_tr'].append(idf_tr)
-    keep_info['idf_val'].append(idf_val)
+        celltypes = y_tr.columns
+        nor_X_tr, idf_tr = preprocess(X_tr.values)          #transformer(np.log1p(X_tr), 'PowerTransformer')
+        nor_y_tr = y_tr.values
+        nor_X_val_scale, idf_val = preprocess(X_val.values)
+        nor_y_val_scale = y_val.loc[:, celltypes].values
+        
+        epochs = 500
+        opt = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999)
+        m256 = Net(nor_X_tr.shape[1], 2, loss=rmse, model_name='m1024', optimizer=opt, large=True,
+                    early_stopping=True, hidden=architectures['m256'][0], dropout=architectures['m256'][1])
+        h_256 = m256.fit(nor_X_tr, nor_y_tr, X_val=nor_X_val_scale, y_val=nor_y_val_scale, epochs=epochs)
+        keep_info['model'].append(m256)
+        keep_info['idf_tr'].append(idf_tr)
+        keep_info['idf_val'].append(idf_val)
 
-    idf_path = path + 'idfs/'
-    model_path = path + 'models/'
-    if not os.path.exists(idf_path):
-        os.makedirs(idf_path)
+        idf_path = path + 'idfs/'
+        model_path = path + 'models/'
+        pred_path = path + 'prediction/'
+        if not os.path.exists(idf_path):
+            os.makedirs(idf_path)
 
-    if not os.path.exists(model_path):
-        os.makedirs(model_path) 
-    
-    sp.save_npz(idf_path+name+'_normalized_m256.npz', idf_val)
-    m256.model.save(model_path+name+'_deepdecon_tf_idf_normalized_m256.h5')
-    print(idf_path+name+'_normalized_m256.npz saved')
-    
-    
+        if not os.path.exists(model_path):
+            os.makedirs(model_path) 
+
+        if not os.path.exists(pred_path):
+            os.makedirs(pred_path)
+        
+        sp.save_npz(idf_path+name+'_normalized_m256.npz', idf_val)
+        m256.model.save(model_path+name+'_deepdecon_tf_idf_normalized_m256.h5')
+        
+        nor_X_val_scale, idf_val = preprocess(X_val.values)
+        pred = m256.model.predict(nor_X_val_scale)
+        pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions.txt')
+        print(idf_path+name+'_normalized_m256.npz saved')
+
+ 
+if __name__ == "__main__":
+    main()
