@@ -46,7 +46,7 @@ def tf_idf(X):
     
     return X, idf_diag
 
-def preprocess(X, idf_diag=None, scaler=None, bulk_num = None):
+def preprocess(X, idf_diag=None, bulk_num = None):
     # X (samples, genes)
     if bulk_num is not None:
         X = X/bulk_num
@@ -154,26 +154,7 @@ class Net(object):
 
         return history
     
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
-    parser.add_argument("--path", type=str, help="training data directory", default='./aml_simulated_bulk_data/range_0_10/')
-    args = parser.parse_args()
-
-    cell = args.cells
-    path = args.path
-    data = []
-    subjects = ['AML328-D29', 'AML1012-D0', 'AML556-D0', 'AML328-D171', 
-                'AML210A-D0', 'AML419A-D0', 'AML328-D0', 'AML707B-D0',
-                'AML916-D0', 'AML328-D113', 'AML329-D0', 'AML420B-D0',
-                'AML329-D20', 'AML921A-D0', 'AML475-D0'
-            ]
-    for sub in subjects:
-        if cell == 500:
-            tmp = pd.read_csv(path+sub+'_bulk_nor_500_200.txt', index_col=0)
-        else:
-            tmp = pd.read_csv(path+sub+'/random_'+str(cell)+'_1000_'+sub+'.txt', index_col=0, nrows=200)
-        data.append(tmp)
+def main(data):
 
     keep_info = {
         'train_ind':[],
@@ -188,21 +169,39 @@ def main():
                     'm512':    ([512, 256, 128, 64],   [0, 0.3, 0.2, 0.1]),
                     'm1024':   ([64, 32, 16, 16, 8], [0, 0, 0, 0, 0, 0])}
     test_genes = pd.read_csv('./aml_subject_data/common_gene.txt', index_col=0)
-    for ind in range(15):
-        name = subjects[ind]
-        print(name)
-        train_ind = list(range(ind))+list(range(ind+1, len(subjects)))
-        print(train_ind, ind)
-        keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
+    keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
+    # for ind in range(15):
+    # name = subjects[ind]
+
+    # rec = pd.read_csv('./gene_expression_recurrent.txt', sep='\t', index_col=0) 
+    # pri = pd.read_csv('./gene_expression_primary.txt', sep='\t', index_col=0) 
+
+    # pri_fpkm = pd.read_csv('./gdc_bulk_primary.txt', index_col=0)
+    # rec_fpkm = pd.read_csv('./gdc_bulk_recurrent.txt', index_col=0)
+
+    # select = pd.concat([rec.sample(frac=0.7), pri.sample(frac=0.7)], axis=0)
+    # select_fpkm = pd.concat([rec_fpkm.sample(frac=0.5), pri_fpkm.sample(frac=0.5)], axis=0)
+    # train_ind = [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]
+    for i in range(15):
+        train_ind = list(range(i))  + list(range(i+1, 15))
+        print(train_ind)
         train = pd.concat([data[i][keep_gene] for i in train_ind], axis=0, ignore_index=True)
-        val = data[ind][keep_gene]
+        # val = pri_fpkm[keep_gene]
+        val = data[i][keep_gene]
         
         X_tr, y_tr = splitData(train)
         X_val, y_val = splitData(val)
+
+        X_tr1, x_tr1_idf = preprocess(X_tr)
+        # select_x, select_idf = preprocess(select_fpkm.loc[:, list(test_genes['gene'].values)].values)
+        # select_y =  select_fpkm.loc[:, ['malignant', 'normal']]
+
+        # X_tr, y_tr = np.concatenate([X_tr1, select_x], axis=0) \
+        #             , pd.concat([y_tr, select_y], axis=0, ignore_index=True)
         
 
         celltypes = y_tr.columns
-        nor_X_tr, idf_tr = preprocess(X_tr.values)          #transformer(np.log1p(X_tr), 'PowerTransformer')
+        nor_X_tr = X_tr1
         nor_y_tr = y_tr.values
         nor_X_val_scale, idf_val = preprocess(X_val.values)
         nor_y_val_scale = y_val.loc[:, celltypes].values
@@ -213,7 +212,7 @@ def main():
                     early_stopping=True, hidden=architectures['m256'][0], dropout=architectures['m256'][1])
         h_256 = m256.fit(nor_X_tr, nor_y_tr, X_val=nor_X_val_scale, y_val=nor_y_val_scale, epochs=epochs)
         keep_info['model'].append(m256)
-        keep_info['idf_tr'].append(idf_tr)
+        keep_info['idf_tr'].append(x_tr1_idf)
         keep_info['idf_val'].append(idf_val)
 
         idf_path = path + 'idfs/'
@@ -228,14 +227,52 @@ def main():
         if not os.path.exists(pred_path):
             os.makedirs(pred_path)
         
-        sp.save_npz(idf_path+name+'_normalized_m256.npz', idf_val)
+        # name = 'whole'
+        name = subjects[i]
+        sp.save_npz(idf_path+name+'_normalized_m256_test.npz', idf_val)
+        # sp.save_npz(idf_path+name+'_normalized_m256_train.npz', x_tr1_idf)
+        # sp.save_npz(idf_path+name+'_normalized_m256_select.npz', select_idf)
         m256.model.save(model_path+name+'_deepdecon_tf_idf_normalized_m256.h5')
         
         nor_X_val_scale, idf_val = preprocess(X_val.values)
         pred = m256.model.predict(nor_X_val_scale)
         pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions.txt')
+
+        # nor_X_val_scale, _ = preprocess(X_val.values, x_tr1_idf)
+        # pred = m256.model.predict(nor_X_val_scale)
+        # pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions_train.txt')
+
+        # nor_X_val_scale, _ = preprocess(X_val.values, select_idf)
+        # pred = m256.model.predict(nor_X_val_scale)
+        # pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions_select.txt')
+
         print(idf_path+name+'_normalized_m256.npz saved')
 
  
 if __name__ == "__main__":
-    main()
+    # main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
+    parser.add_argument("--path", type=str, help="training data directory", default='./aml_simulated_bulk_data/range_0_10/')
+    parser.add_argument("--start", type=int, help="fraction start range of generated samples e.g. 0 for [0, 100]", default=0)
+    parser.add_argument("--end", type=int, help="fraction end range of generated samples e.g. 0 for [0, 100]", default=100)
+    args = parser.parse_args()
+
+    cell = args.cells
+    path = args.path
+    start = args.start
+    end = args.end
+
+    subjects = ['AML328-D29', 'AML1012-D0', 'AML556-D0', 'AML328-D171', 
+                'AML210A-D0', 'AML419A-D0', 'AML328-D0', 'AML707B-D0',
+                'AML916-D0', 'AML328-D113', 'AML329-D0', 'AML420B-D0',
+                'AML329-D20', 'AML921A-D0', 'AML475-D0'
+            ]
+    
+    for subject in subjects:
+        path = "./aml_simulated_bulk_data/sample_" + str(cell) + "/range_" + str(start) + "_" + str(end) + "/"
+        data = []
+        for sub in subjects:
+            tmp = pd.read_csv(path+sub+'_bulk_nor_'+ str(cell) +'_200.txt', index_col=0)
+            data.append(tmp)
+        main(data)

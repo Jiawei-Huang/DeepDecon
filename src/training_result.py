@@ -1,6 +1,5 @@
 from train_model import *
 from tensorflow.keras.models import load_model
-import matplotlib.pyplot as plt
 
 
 
