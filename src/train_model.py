@@ -1,63 +1,22 @@
+import os
 import pandas as pd
 import numpy as np
-import os
 import argparse
 
 import scipy.sparse as sp
-
 import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras import backend as K
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras import metrics
-
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn import preprocessing as pp
 
-def splitData(X, binomial=False):
-    if binomial:
-        x = X.iloc[:, 3:]
-        y = pd.DataFrame([X['mal_ratio'], 1-X['mal_ratio']],  index=['malignant', 'normal']).T
-    else:  
-        x = X.iloc[:, 2:]
-        frac = X.iloc[:, :2]
-        y = frac.divide(frac.sum(axis=1), axis=0)
-    return x, y
+from util import splitData, preprocess
+
 
 def rmse(y_true, y_pred):
     return tf.sqrt(tf.reduce_mean(tf.math.squared_difference(y_true, y_pred)))
-
-def tf_trans(X, scaler=None):
-    # X (genes, samples)
-    if scaler is None:
-        return 1.0 * X / np.tile(np.sum(X,axis=0), (X.shape[0],1))
-    else:
-        return 1.0 * X /scaler.reshape(1, X.shape[1])
-
-def tf_idf(X):
-    #TF-IDF transformation
-    idf = np.log(1.0 * X.shape[1] / np.sum(X,axis=1)+1)
-    idf_diag = sp.diags(list(idf), offsets=0, shape=(X.shape[0], X.shape[0]), format="csr")
-    X = idf_diag * tf_trans(X)
-    
-    return X, idf_diag
-
-def preprocess(X, idf_diag=None, bulk_num = None):
-    # X (samples, genes)
-    if bulk_num is not None:
-        X = X/bulk_num
-    if idf_diag is None:
-        X, idf_diag = tf_idf(X.T)
-    else:
-        X = idf_diag*tf_trans(X.T)
-    X[np.isnan(X)] = 0
-    if len(X) > 1:
-        X = MinMaxScaler().fit_transform(X).T
-    return X, idf_diag
 
 class Net(object):
     def __init__(
@@ -65,11 +24,10 @@ class Net(object):
         n_in,
         n_out,
         loss,
-        model_name = 'dataset',
-        hidden = [256, 128, 64, 32, 32, 32],
-        dropout = [0, 0, 0, 0, 0, 0],
-        num_category = 2, 
-        epochs = 100, 
+        model_name,
+        hidden,
+        dropout, 
+        epochs, 
         activation = 'relu',
         optimizer = 'adam',
         large = False,
@@ -153,6 +111,9 @@ class Net(object):
          epochs = self.epochs, validation_data = validation_data, callbacks = callbacks, shuffle = True, verbose = verbose)
 
         return history
+
+
+
     
 def main(data):
 
@@ -165,41 +126,20 @@ def main(data):
         'idf_val':[]
     }
 
-    architectures = {'m256':    ([256, 128, 64, 32],    [0, 0, 0, 0]),
-                    'm512':    ([512, 256, 128, 64],   [0, 0.3, 0.2, 0.1]),
-                    'm1024':   ([64, 32, 16, 16, 8], [0, 0, 0, 0, 0, 0])}
+    architectures = {'hidden':[256, 128, 64, 32], 'dropout': [0, 0, 0, 0]}
     test_genes = pd.read_csv('./aml_subject_data/common_gene.txt', index_col=0)
     keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
-    # for ind in range(15):
-    # name = subjects[ind]
-
-    # rec = pd.read_csv('./gene_expression_recurrent.txt', sep='\t', index_col=0) 
-    # pri = pd.read_csv('./gene_expression_primary.txt', sep='\t', index_col=0) 
-
-    # pri_fpkm = pd.read_csv('./gdc_bulk_primary.txt', index_col=0)
-    # rec_fpkm = pd.read_csv('./gdc_bulk_recurrent.txt', index_col=0)
-
-    # select = pd.concat([rec.sample(frac=0.7), pri.sample(frac=0.7)], axis=0)
-    # select_fpkm = pd.concat([rec_fpkm.sample(frac=0.5), pri_fpkm.sample(frac=0.5)], axis=0)
-    # train_ind = [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]
     for i in range(15):
         train_ind = list(range(i))  + list(range(i+1, 15))
-        print(train_ind)
+        # print(train_ind)
+        print('Test dataset:', subjects[i])
         train = pd.concat([data[i][keep_gene] for i in train_ind], axis=0, ignore_index=True)
-        # val = pri_fpkm[keep_gene]
         val = data[i][keep_gene]
         
         X_tr, y_tr = splitData(train)
         X_val, y_val = splitData(val)
 
         X_tr1, x_tr1_idf = preprocess(X_tr)
-        # select_x, select_idf = preprocess(select_fpkm.loc[:, list(test_genes['gene'].values)].values)
-        # select_y =  select_fpkm.loc[:, ['malignant', 'normal']]
-
-        # X_tr, y_tr = np.concatenate([X_tr1, select_x], axis=0) \
-        #             , pd.concat([y_tr, select_y], axis=0, ignore_index=True)
-        
-
         celltypes = y_tr.columns
         nor_X_tr = X_tr1
         nor_y_tr = y_tr.values
@@ -208,8 +148,8 @@ def main(data):
         
         epochs = 500
         opt = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999)
-        m256 = Net(nor_X_tr.shape[1], 2, loss=rmse, model_name='m1024', optimizer=opt, large=True,
-                    early_stopping=True, hidden=architectures['m256'][0], dropout=architectures['m256'][1])
+        m256 = Net(nor_X_tr.shape[1], 2, loss=rmse, model_name='m256', optimizer=opt, large=True, epochs=epochs,
+                    early_stopping=True, hidden=architectures['hidden'], dropout=architectures['dropout'])
         h_256 = m256.fit(nor_X_tr, nor_y_tr, X_val=nor_X_val_scale, y_val=nor_y_val_scale, epochs=epochs)
         keep_info['model'].append(m256)
         keep_info['idf_tr'].append(x_tr1_idf)
@@ -227,35 +167,18 @@ def main(data):
         if not os.path.exists(pred_path):
             os.makedirs(pred_path)
         
-        # name = 'whole'
         name = subjects[i]
-        sp.save_npz(idf_path+name+'_normalized_m256_test.npz', idf_val)
-        # sp.save_npz(idf_path+name+'_normalized_m256_train.npz', x_tr1_idf)
-        # sp.save_npz(idf_path+name+'_normalized_m256_select.npz', select_idf)
+        sp.save_npz(idf_path+name+'_normalized_m256.npz', idf_val)
         m256.model.save(model_path+name+'_deepdecon_tf_idf_normalized_m256.h5')
-        
-        nor_X_val_scale, idf_val = preprocess(X_val.values)
-        pred = m256.model.predict(nor_X_val_scale)
-        pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions.txt')
-
-        # nor_X_val_scale, _ = preprocess(X_val.values, x_tr1_idf)
-        # pred = m256.model.predict(nor_X_val_scale)
-        # pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions_train.txt')
-
-        # nor_X_val_scale, _ = preprocess(X_val.values, select_idf)
-        # pred = m256.model.predict(nor_X_val_scale)
-        # pd.DataFrame(pred, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_predictions_select.txt')
-
-        print(idf_path+name+'_normalized_m256.npz saved')
 
  
 if __name__ == "__main__":
     # main()
     parser = argparse.ArgumentParser()
     parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
-    parser.add_argument("--path", type=str, help="training data directory", default='./aml_simulated_bulk_data/range_0_10/')
-    parser.add_argument("--start", type=int, help="fraction start range of generated samples e.g. 0 for [0, 100]", default=0)
-    parser.add_argument("--end", type=int, help="fraction end range of generated samples e.g. 0 for [0, 100]", default=100)
+    parser.add_argument("--path", type=str, help="Training data directory", default='./aml_simulated_bulk_data/')
+    parser.add_argument("--start", type=int, help="Fraction start range of generated samples e.g. 0 for [0, 100]", default=0)
+    parser.add_argument("--end", type=int, help="Fraction end range of generated samples e.g. 0 for [0, 100]", default=100)
     args = parser.parse_args()
 
     cell = args.cells
@@ -270,9 +193,10 @@ if __name__ == "__main__":
             ]
     
     for subject in subjects:
-        path = "./aml_simulated_bulk_data/sample_" + str(cell) + "/range_" + str(start) + "_" + str(end) + "/"
+        data_path = path + "sample_" + str(cell) + "/range_" + str(start) + "_" + str(end) + "/"
         data = []
         for sub in subjects:
-            tmp = pd.read_csv(path+sub+'_bulk_nor_'+ str(cell) +'_200.txt', index_col=0)
+            tmp = pd.read_csv(data_path+sub+'_bulk_nor_'+ str(cell) +'_200.txt', index_col=0)
             data.append(tmp)
+            print(sub, ' loaded')
         main(data)

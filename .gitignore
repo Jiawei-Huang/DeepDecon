@@ -15,8 +15,11 @@ sc*/
 simu*/
 slurms/
 *.csv
-*.txt
 *.tsv
 *.tar.gz
 *.zip
 *.h5ad
+*.json
+*.pyc
+*.ipy*/
+
