@@ -113,8 +113,6 @@ class Net(object):
         return history
 
 
-
-    
 def main(data):
 
     keep_info = {
