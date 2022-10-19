@@ -3,9 +3,7 @@ import pandas as pd
 import numpy as np
 import argparse
 import pickle
-import collections
 import tensorflow as tf
-import scipy.sparse as sp
 from util import splitData, preprocess
 from tensorflow.keras.models import load_model
 
@@ -35,7 +33,7 @@ def get_difference(path_pred, path_label=None, path_data=None):
 
 def one_iteration(x, models, idfs, individual, diff_mins, diff_maxs, cat, alpha, diff):
     tmp_x, _ = preprocess(x.reshape(1, -1), idfs[cat][individual])
-    y_hat = models[cat].predict(tmp_x)
+    y_hat = models[cat][individual].predict(tmp_x)
     lower, upper, new_cat = get_index(y_hat[0, 0], diff_mins, diff_maxs, cat, alpha=alpha, diff=diff)
     return lower, upper, new_cat, y_hat
 

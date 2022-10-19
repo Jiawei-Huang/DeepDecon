@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 import argparse
-import ast
 
 def getSample(x, num=None):
     if x is None:
@@ -118,13 +117,12 @@ def simulateBulksample(expression, N=100, total=None, normal=False, binomial=Fal
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=100)
-parser.add_argument("--samples", "-n", type=int, help="Total number of samples to create for each dataset.")
-parser.add_argument("--fixed", type=int, help="Generate fixed fraction samples", default=40)
-parser.add_argument("--subject", type=str, help="subject name", default='AML328-D29')
-parser.add_argument("--start", type=int, help="fraction start range of generated samples e.g. 0 for [0, 100]", default=0)
-parser.add_argument("--end", type=int, help="fraction end range of generated samples e.g. 0 for [0, 100]", default=100)
-parser.add_argument("--normal", type=bool, help="Whether generating bulk sample from normal distribution", default=False)
-parser.add_argument("--binomial", type=bool, help="Whether generating bulk fractions from binomial distribution", default=False)
+parser.add_argument("--samples", "-n", type=int, help="Total number of samples to create for each dataset.", default=200)
+parser.add_argument("--subject", type=str, help="Subject name", default='AML328-D29')
+parser.add_argument("--start", type=int, help="Fraction start range of generated samples e.g. 0 for [0, 100]", default=0)
+parser.add_argument("--end", type=int, help="Fraction end range of generated samples e.g. 0 for [0, 100]", default=100)
+parser.add_argument("--normal", type=int, help="Whether generating bulk sample from normal distribution, 0=False, 1=True", default=0)
+parser.add_argument("--binomial", type=int, help="Whether generating bulk fractions from binomial distribution, 0=False, 1=True", default=0)
 parser.add_argument("--data", type=str, help="Directory containg the datsets", default='/project/fsun_106/jiaweih/AML/10x_dataset/gdc_data/aml_subject_data/')
 parser.add_argument("--out", type=str, help="Output directory", default='/project/fsun_106/jiaweih/AML/10x_dataset/gdc_data/aml_bulk_simulation_binomial/')
 args = parser.parse_args()
@@ -133,10 +131,9 @@ sample_size = args.cells
 num_samples = args.samples
 path = args.data
 name = args.subject
-fixed_fraction = args.fixed
-out_dir = args.out+name+'_norm/'
-normal = args.normal
-binomial = args.binomial
+out_dir = args.out+ "sample_" + str(sample_size) + "/range_" + str(args.start) + "_" + str(args.end) + "/"
+normal = True if args.normal == 1 else False
+binomial = True if args.binomial == 1 else False
 ratio_range = [args.start, args.end]
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
