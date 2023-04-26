@@ -1,4 +1,5 @@
 import os
+import random
 import pandas as pd
 import numpy as np
 import argparse
@@ -108,7 +109,7 @@ class Net(object):
             callbacks = None
         
         history = self.model.fit(X_tr, y_tr, batch_size = self.batch_size,
-         epochs = self.epochs, validation_data = validation_data, callbacks = callbacks, shuffle = True, verbose = verbose)
+        epochs = self.epochs, validation_data = validation_data, callbacks = callbacks, shuffle = True, verbose = verbose)
 
         return history
 
@@ -124,16 +125,24 @@ def main(data):
         'idf_val':[]
     }
 
-    architectures = {'hidden':[256, 128, 64, 32], 'dropout': [0, 0, 0, 0]}
-    test_genes = pd.read_csv('./aml_subject_data/common_gene.txt', index_col=0)
+    architectures = {'hidden':[256, 128, 64, 32], 'dropout': [0.1, 0.1, 0.1, 0]}
+    test_genes = pd.read_csv('./common_gene.txt', index_col=0)
     keep_gene = ['malignant', 'normal']+list(test_genes['gene'].values)
     for i in range(15):
         train_ind = list(range(i))  + list(range(i+1, 15))
         # print(train_ind)
         print('Test dataset:', subjects[i])
-        train = pd.concat([data[i][keep_gene] for i in train_ind], axis=0, ignore_index=True)
+        train = pd.concat([data[j][keep_gene] for j in train_ind], axis=0, ignore_index=True)
         val = data[i][keep_gene]
-        
+    # train = pd.read_csv('./ALL_samples/data_bulk_nor_500_3000.txt', index_col = 0)
+    # val = pd.read_csv('./ALL_samples/data_bulk_nor_500_200.txt', index_col = 0)
+        n = 14
+        t1 = random.sample(list(range(len(train))), n)
+        t2 = random.sample(list(range(len(val))), n)
+        train.iloc[t1, :] = val.iloc[t2, :].values
+
+
+    
         X_tr, y_tr = splitData(train)
         X_val, y_val = splitData(val)
 
@@ -143,7 +152,7 @@ def main(data):
         nor_y_tr = y_tr.values
         nor_X_val_scale, idf_val = preprocess(X_val.values)
         nor_y_val_scale = y_val.loc[:, celltypes].values
-        
+    
         epochs = 500
         opt = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999)
         m256 = Net(nor_X_tr.shape[1], 2, loss=rmse, model_name='m256', optimizer=opt, large=True, epochs=epochs,
@@ -153,9 +162,9 @@ def main(data):
         keep_info['idf_tr'].append(x_tr1_idf)
         keep_info['idf_val'].append(idf_val)
 
-        idf_path = path + 'idfs/'
-        model_path = path + 'models/'
-        pred_path = path + 'prediction/'
+        idf_path = data_path + 'idfs_tf4/'
+        model_path = data_path + 'models_tf4/'
+        pred_path = data_path + 'prediction_tf4/'
         if not os.path.exists(idf_path):
             os.makedirs(idf_path)
 
@@ -164,10 +173,17 @@ def main(data):
 
         if not os.path.exists(pred_path):
             os.makedirs(pred_path)
-        
+    
         name = subjects[i]
         sp.save_npz(idf_path+name+'_normalized_m256.npz', idf_val)
         m256.model.save(model_path+name+'_deepdecon_tf_idf_normalized_m256.h5')
+        
+        X_val, y_val = splitData(val)
+        nor_X_val_scale, idf_val = preprocess(X_val)
+        preds = m256.model.predict(nor_X_val_scale)
+        pd.DataFrame(preds, columns=['malignant', 'normal']).to_csv(pred_path+name+'_deepdecon_tf_idf_m256_prediction.txt')
+        # np.savetxt(pred_path+name+'_deepdecon_tf_idf_m256_prediction.txt', preds)
+
 
  
 if __name__ == "__main__":
@@ -190,11 +206,11 @@ if __name__ == "__main__":
                 'AML329-D20', 'AML921A-D0', 'AML475-D0'
             ]
     
-    for subject in subjects:
-        data_path = path + "sample_" + str(cell) + "/range_" + str(start) + "_" + str(end) + "/"
-        data = []
-        for sub in subjects:
-            tmp = pd.read_csv(data_path+sub+'_bulk_nor_'+ str(cell) +'_200.txt', index_col=0)
-            data.append(tmp)
-            print(sub, ' loaded')
-        main(data)
+
+    data_path = path + "sample_" + str(cell) + "/range_" + str(start) + "_" + str(end) + "/"
+    data = []
+    for sub in subjects:
+        tmp = pd.read_csv(data_path+sub+'_bulk_nor_'+ str(cell) +'_200.txt', index_col=0)
+        data.append(tmp)
+        print(sub, ' loaded')
+    main(data)

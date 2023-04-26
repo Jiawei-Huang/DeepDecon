@@ -92,7 +92,8 @@ def getBulksample(x, N=100, total=None, normal=False, binomial=False, fixed = No
                 else:
                     if ratio_range is not None:
                         low, high = ratio_range
-                        num = int(remain*random.randint(int(low), int(high))/100)
+                        # num = int(remain*random.randint(int(low), int(high))/100)
+                        num = int(random.randint(remain*int(low), remain*int(high))/100)
                     else:
                         num = random.randint(0, remain)
                     remain -= num
@@ -131,20 +132,21 @@ sample_size = args.cells
 num_samples = args.samples
 path = args.data
 name = args.subject
-out_dir = args.out+ "sample_" + str(sample_size) + "/range_" + str(args.start) + "_" + str(args.end) + "/"
 normal = True if args.normal == 1 else False
 binomial = True if args.binomial == 1 else False
 ratio_range = [args.start, args.end]
+
+
+out_dir = args.out
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
-
 def main():
     tmp = pd.read_csv(path+name+'_norm_sc.txt', index_col=0)
     final = simulateBulksample(tmp, N=sample_size, total=num_samples, normal=normal, binomial=binomial, ratio_range=ratio_range)
     if binomial:
         filepath = out_dir+'fixed_' + str(args.start)+'_'+str(100-args.start)+'_'+str(args.cells)+'_'+str(num_samples)+'_binomial.txt'
     else:
-        filepath = out_dir+name+'_bulk_nor_'+ str(sample_size) + '_'+str(num_samples)+'.txt'
+        filepath = out_dir+'_bulk_nor_'+ str(sample_size) + '_'+str(num_samples)+'.txt'
     final.to_csv(filepath)
     print(str(final.shape[0]) + ' bulk samples write to ' + filepath)    
     
