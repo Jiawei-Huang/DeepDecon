@@ -1,5 +1,5 @@
 # DeepDecon: A Deep-learning Method for Estimating Cell Fractions in Bulk RNA-seq Data with Applications to AML
-![model](./overview_recursive.png)
+![model](./overview_new.png)
 ### Overview
 Here, we present `DeepDecon`, a deep neural network model leveraging single-cell gene expression information to accurately predict the fraction of cancer cells in bulk tissues. `DeepDecon` was trained based on single-cell RNA sequencing data and was robust to experimental biases and noises. It will automatically select optimal models to recursively estimate malignant cell fractions and improve prediction accuracy. When applied to bone marrow data (see Tutorials), it outperforms existing decomposition methods in both accuracy and robustness. We further show that the `DeepDecon` is robust to the number of single cells within a bulk sample.
 
