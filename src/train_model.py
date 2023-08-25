@@ -134,14 +134,6 @@ def main(data):
         print('Test dataset:', subjects[i])
         train = pd.concat([data[j][keep_gene] for j in train_ind], axis=0, ignore_index=True)
         val = data[i][keep_gene]
-    # train = pd.read_csv('./ALL_samples/data_bulk_nor_500_3000.txt', index_col = 0)
-    # val = pd.read_csv('./ALL_samples/data_bulk_nor_500_200.txt', index_col = 0)
-        n = 14
-        t1 = random.sample(list(range(len(train))), n)
-        t2 = random.sample(list(range(len(val))), n)
-        train.iloc[t1, :] = val.iloc[t2, :].values
-
-
     
         X_tr, y_tr = splitData(train)
         X_val, y_val = splitData(val)
