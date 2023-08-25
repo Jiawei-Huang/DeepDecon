@@ -154,9 +154,9 @@ def main(data):
         keep_info['idf_tr'].append(x_tr1_idf)
         keep_info['idf_val'].append(idf_val)
 
-        idf_path = data_path + 'idfs_tf4/'
-        model_path = data_path + 'models_tf4/'
-        pred_path = data_path + 'prediction_tf4/'
+        idf_path = data_path + 'idfs/'
+        model_path = data_path + 'models/'
+        pred_path = data_path + 'prediction/'
         if not os.path.exists(idf_path):
             os.makedirs(idf_path)
 
