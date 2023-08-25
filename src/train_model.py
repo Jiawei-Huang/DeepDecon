@@ -36,7 +36,7 @@ class Net(object):
         early_stopping_validation_fraction = 0.1, 
         early_stopping_patience = 40,
         validation_data_for_early_stopping = None,
-        batch_size = 32,
+        batch_size = 128,
         verbose = 0, 
         ):
 
