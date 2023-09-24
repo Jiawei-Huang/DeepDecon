@@ -40,7 +40,7 @@ python train_model.py [--cells CELLS] [--path PATH] [--start START] [--end END]
 --cells CELLS  Number of cells to use for each bulk sample.
 --path PATH    Training data directory
 --start START  Fraction start range of generated samples e.g. 0 for [0, 100]
---end END      Fraction end range of generated samples e.g. 0 for [0, 100]
+--end END      Fraction end range of generated samples e.g. 100 for [0, 100]
 ```
 #### Model evaluation
 Next, people can get predictions by running
