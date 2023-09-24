@@ -28,10 +28,16 @@ Several scRNA-seq AML datasets have been prepared as the input of DeepDecom mode
 DeepDecon construct bulk RNA-seq samples through the `get_bulk_samples.py` script. One can try generate a bulk RNA-seq dataset with any ratio of malignant cell by running
 ```bash
 python ./src/get_bulk_samples.py [-h] [--cells CELLS] [--samples SAMPLES] [--subject SUBJECT] [--start START] [--end END] [--binomial BINOMIAL] [--data DATA] [--out OUT]
-```
-Above example will generate a bulk RNA-seq dataset with 200 samples and each sample contains 500 single cells. The malignnat fraction of each sample is between 0.1 and 0.2. For details of each parameter, one can run
-```bash
-python ./src/get_bulk_samples.py --help
+-h, --help            show this help message and exit
+--cells CELLS         Number of cells to use for each bulk sample.
+--samples SAMPLES, -n SAMPLES
+                      Total number of samples to create for each dataset.
+--subject SUBJECT     Subject name
+--start START         Fraction start range of generated samples e.g. 0 for [0, 100]
+--end END             Fraction end range of generated samples e.g. 0 for [0, 100]
+--binomial BINOMIAL   Whether generating bulk fractions from binomial distribution, 0=False, 1=True
+--data DATA           Directory containg the datsets
+--out OUT             Output directory
 ```
 #### Model training
 As long as we have the data, one can train DeepDecon models by running
