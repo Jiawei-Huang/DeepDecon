@@ -42,11 +42,23 @@ python ./src/get_bulk_samples.py [-h] [--cells CELLS] [--samples SAMPLES] [--sub
 #### Model training
 As long as we have the data, one can train DeepDecon models by running
 ```bash
-python train_model.py [--cells CELLS] [--path PATH] [--start START] [--end END]
---cells CELLS  Number of cells to use for each bulk sample.
---path PATH    Training data directory
---start START  Fraction start range of generated samples e.g. 0 for [0, 100]
---end END      Fraction end range of generated samples e.g. 100 for [0, 100]
+python train_model.py [-h] [--cells CELLS] [--path PATH] [--lr LR] [--bs BS]
+                      [--dr DR] [--start START] [--end END] [--scaler SCALER]
+                      [--normalization NORMALIZATION]
+  -h, --help            show this help message and exit
+  --cells CELLS         Number of cells to use for each bulk sample.
+  --path PATH           Training data directory
+  --lr LR               learning rate index k, lr = 10^(-k)
+  --bs BS               batch size
+  --dr DR               dropout
+  --start START         Fraction start range of generated samples e.g. 0 for
+                        [0, 100]
+  --end END             Fraction end range of generated samples e.g. 100 for
+                        [0, 100]
+  --scaler SCALER       Scaler of neural network, MinMaxScaler (mms) or
+                        StandardScaler (ss)
+  --normalization NORMALIZATION
+                        Normalization methods,TF-IDF, FPKM, CPM or TPM
 ```
 #### Model evaluation
 Next, people can get predictions by running
