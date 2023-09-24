@@ -156,7 +156,7 @@ def main(data):
         keep_info['model'].append(m256)
         keep_info['idf_tr'].append(x_tr1_idf)
         keep_info['idf_val'].append(idf_val)
-        datapath = './test/'
+        
         model_path = datapath + 'models/' + normalization + '_' + scaler + '/'
         pred_path = datapath + 'predictions/'+ normalization + '_' + scaler + '/'
         
