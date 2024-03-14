@@ -18,14 +18,14 @@ Download DeepDecon by
 ```git
 git clone https://github.com/Jiawei-Huang/DeepDecon.git
 ```
-Installation has been tested in a Linux and MacOs platform with Python3.6. GPU is recommended for accelerating the training process.
+The installation has been tested in a Linux and Mac OS platform with Python3.6. GPU is recommended for accelerating the training process.
 
 ### Instructions
 This section provides instructions on how to run DeepDecon with scRNA-seq datasets.
-#### Data preparation
-Several scRNA-seq AML datasets have been prepared as the input of DeepDecom model. These datasets can be downloaded from the [zenode repository](https://zenodo.org/record/7223362#.Y0-CH-yZNhE). Uncompress the `datasets.tar.gz` in `datasets` folder then each dataset will have its own file, which denotes the gene expression matrix (`XXX_norm_sc.txt`, `XXX` refers to the subject name). Each row in the matrix refers to one cell and the first column of the matrix refers to the cell type (malignant/normal), the rest columns refer to genes.
+#### Data Preparation
+Several scRNA-seq AML datasets have been prepared as the input of the DeepDecom model. One can get the scRNA-seq AML data from Gene Expression Omnibus (GEO) under accession number GSE116256, Neuroblastoma data was downloaded from the Gene Expression Omnibus (GEO) with accession GSE137804 and Head and neck squamous cell carcinoma (HNSCC) cancer data was collected from a database [TISCH](http://tisch.comp-genomics.org/).
 #### Bulk sample simulation
-DeepDecon construct bulk RNA-seq samples through the `get_bulk_samples.py` script. One can try generate a bulk RNA-seq dataset with any ratio of malignant cell by running
+DeepDecon constructs bulk RNA-seq samples through the `get_bulk_samples.py` script. One can try to generate a bulk RNA-seq dataset with any ratio of malignant cell by running
 ```bash
 python ./src/get_bulk_samples.py [-h] [--cells CELLS] [--samples SAMPLES] [--subject SUBJECT] [--start START] [--end END] [--binomial BINOMIAL] [--data DATA] [--out OUT]
 -h, --help            show this help message and exit
@@ -75,5 +75,5 @@ python eval.py [--cells CELLS] [--dir DIR] [--filepath FILEPATH] [--sub_idx SUB_
 ### Tutorial
 See `DeepDecon_example.ipynb` for reproducing the experimental results in this paper.
 ### Contact
-Feel free to open an issue on Github or contact [me](jiaweih@usc.edu) if you have any problem in running DeepDecon.
+Feel free to open an issue on GitHub or contact [me](jiaweih@usc.edu) if you have any problem in running DeepDecon.
 
