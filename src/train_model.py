@@ -185,7 +185,7 @@ def main(data):
 if __name__ == "__main__":
     # main()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500)
+    parser.add_argument("--cells", type=int, help="Number of cells to use for each bulk sample.", default=500) # here we use 500 to save time, in the manuscript, it's 3000
     parser.add_argument("--path", type=str, help="Training data directory", default='./aml_simulated_bulk_data/')
     parser.add_argument("--lr", type=int, help="learning rate index k, lr = 10^(-k)", default=4)
     parser.add_argument("--bs", type=int, help="batch size", default=128)
